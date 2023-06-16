@@ -9,7 +9,7 @@
 enum{
     W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
     B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
-    W_PIECES, B_PIECES, ALL_PIECES, W_E_P, B_E_P,
+    W_PIECES, B_PIECES, ALL_PIECES, 
     W_PAWN_ATTACK, W_KNIGHT_ATTACK, W_BISHOP_ATTACK, W_ROOK_ATTACK, W_QUEEN_ATTACK, W_KING_ATTACK,
     B_PAWN_ATTACK, B_KNIGHT_ATTACK, B_BISHOP_ATTACK, B_ROOK_ATTACK, B_QUEEN_ATTACK, B_KING_ATTACK,
     W_ALL_ATTACKS, B_ALL_ATTACKS
@@ -21,37 +21,53 @@ enum{
 
 class Bitboard{
 public:
+    struct Flags;
     static void print_U64(U64 b);
 
     void print_board();
+    void print_flags(Flags f);
     void set_board(std::string FEN);
+    void copy_flags(Flags from, Flags &to);
     void reset();
     void input_move(int color);
     void make_move(U64 from, U64 to, int color, int piece);
     void make_easy_move(U64 form, U64 to, int color);
     void remove_square(U64 square);
+    void promote(U64 from, int color, int piece_to);
+    void unpromote(U64 from, int color, int piece_to);
+    char char_from_piece(int piece);
 
     U64 find_white_pieces();
     U64 find_black_pieces();
     U64 find_all_pieces();
     int find_piece_index(U64 piece, int color);
+    int piece_from_character(char c);
+    int is_promoting_pawn(U64 square, int piece);
     void update_color_boards();
-    U64 board[31];
-    int king_castling[2] = {1,1};
-    int queen_castling[2] = {1,1};
 
-    U64 RANK_5, RANK_4;
+    U64 board[29];
+    Flags *fl;
+
+    U64 RANK_5, RANK_4, RANK_8, RANK_1;
 
     int turn_number = 1;
     int running = 1;
     int endgame = 0;
+    int endgame_turning = 30;
     int turn = WHITE;
     char piece_naming[12] = {'P', 'N', 'B', 'R', 'Q', 'K',
                             'p', 'n', 'b', 'r', 'q', 'k'};
 
     Bitboard();
+    ~Bitboard();
 private:
     //White: Pawn, Knight, Bishop, Rook, Queen, King...
+};
+
+struct Bitboard::Flags{
+    U64 ep[2] = {0,0};
+    int king_castling[2] = {1,1};
+    int queen_castling[2] = {1,1};
 };
 
 void Bitboard::print_U64(U64 b){
@@ -63,6 +79,14 @@ void Bitboard::print_U64(U64 b){
         std::cout << std::endl;
     }
     std::cout << std::endl;
+}
+
+void Bitboard::copy_flags(Flags from, Flags &to){
+    to.ep[0] = from.ep[0], to.ep[1] = from.ep[1];
+    to.king_castling[0] = from.king_castling[0];
+    to.king_castling[1] = from.king_castling[1];
+    to.queen_castling[0] = from.queen_castling[0];
+    to.queen_castling[1] = from.queen_castling[1];
 }
 
 void Bitboard::print_board(){
@@ -86,6 +110,16 @@ void Bitboard::print_board(){
         std::cout << i << " ";
     }
     std::cout << std::endl << std::endl;
+}
+
+void Bitboard::print_flags(Flags f){
+    std::cout << "Flags: ";
+    std::cout << "WEP " << f.ep[WHITE] << " ";
+    std::cout << "BEP " << f.ep[BLACK] << " ";
+    std::cout << "WCastleKing " << f.king_castling[0] << " ";
+    std::cout << "WCastleQueen " << f.queen_castling[0] << " ";
+    std::cout << "BCastleKing " << f.king_castling[1] << " ";
+    std::cout << "BCastleQueen " << f.queen_castling[1] << " " << std::endl;
 }
 
 void Bitboard::set_board(std::string FEN){
@@ -122,8 +156,8 @@ void Bitboard::set_board(std::string FEN){
 
 void Bitboard::reset(){
     set_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
-    king_castling[0] = 1, king_castling[1] = 1;
-    queen_castling[0] = 1, queen_castling[1] = 1;
+    fl->king_castling[0] = 1, fl->king_castling[1] = 1;
+    fl->queen_castling[0] = 1, fl->queen_castling[1] = 1;
 }
 
 U64 Bitboard::find_white_pieces(){
@@ -166,8 +200,23 @@ void Bitboard::remove_square(U64 square){
     }
 }
 
+int Bitboard::piece_from_character(char c){
+    for(int i = 1; i < 5; i++){
+        if(piece_naming[i + 6] == c){
+            return i;
+        }
+    }
+    return -1;
+}
+
+char Bitboard::char_from_piece(int piece){
+    if(piece < 6) piece += 6;
+    return piece_naming[piece];
+}
+
 void Bitboard::input_move(int color){
-    int fr, fc, tr, tc;
+    int fr, fc, tr, tc, piece;
+    std::string ch;
     U64 from, to;
     std::cout << "FROM row and col: ";
     std::cin >> fr >> fc;
@@ -175,63 +224,94 @@ void Bitboard::input_move(int color){
     std::cin >> tr >> tc;
     from = (1ULL << (fr * 8 + fc));
     to = (1ULL << (tr * 8 + tc));
+    piece = find_piece_index(from, color);
     make_easy_move(from, to, color);
+    if(is_promoting_pawn(to, piece)){
+        std::cout << "Promote to: ";
+        std::cin >> ch;
+        promote(to, color, piece_from_character(ch[0]) + 6 * color);
+    }
 }
 
 void Bitboard::make_easy_move(U64 from, U64 to, int color){
     make_move(from, to, color, find_piece_index(from, color));
 }
 
+void Bitboard::promote(U64 from, int color, int piece_to){
+    board[W_PAWN + 6 * color] &= ~from;
+    board[piece_to] |= from;
+}
+
+void Bitboard::unpromote(U64 from, int color, int piece_to){
+    board[piece_to] &= ~from;
+    board[W_PAWN + 6 * color] |= from;
+}
+
+int Bitboard::is_promoting_pawn(U64 square, int piece){
+    if(piece == W_PAWN || piece == B_PAWN){
+        if(square & RANK_1 || square & RANK_8){
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void Bitboard::make_move(U64 from, U64 to, int color, int piece){
     //int piece = find_piece_index(from, color);
     if(piece == W_PAWN){
-       if((from >> 16 == to)) board[B_E_P] = to;
+       if((from >> 16 == to)) fl->ep[BLACK] = to;
        else if((from & RANK_5) && 
-                (((from >> 1) == board[W_E_P] && to == (from >> 9))
-                || ((from << 1) == board[W_E_P] && to == (from >> 7)))){
-        board[B_PAWN] &= (~board[W_E_P]);
-        board[W_E_P] = 0ULL;
+                (((from >> 1) == fl->ep[WHITE] && to == (from >> 9))
+                || ((from << 1) == fl->ep[WHITE] && to == (from >> 7)))){
+        board[B_PAWN] &= (~fl->ep[WHITE]);
+        fl->ep[WHITE] = 0ULL;
        }
+       else fl->ep[BLACK] = 0ULL;
     }
     else if(piece == B_PAWN){
-        if((from << 16 == to)) board[W_E_P] = to;
+        if((from << 16 == to)) fl->ep[WHITE] = to;
         else if((from & RANK_4) && 
-                (((from >> 1) == board[B_E_P] && to == (from << 7))
-                || ((from << 1) == board[B_E_P] && to == (from << 9)))){
-        board[W_PAWN] &= (~board[B_E_P]);
-        board[B_E_P] = 0ULL;
+                (((from >> 1) == fl->ep[BLACK] && to == (from << 7))
+                || ((from << 1) == fl->ep[BLACK] && to == (from << 9)))){
+        board[W_PAWN] &= (~fl->ep[BLACK]);
+        fl->ep[BLACK] = 0ULL;
        }
+       else fl->ep[WHITE] = 0ULL;
     }
-    else if(piece == W_KING || piece == B_KING){
+    else{
+        fl->ep[WHITE] = 0ULL;
+        fl->ep[BLACK] = 0ULL;
+    }
+    if(piece == W_KING || piece == B_KING){
         if((from << 2) == to){
-            if(king_castling[color]){
+            if(fl->king_castling[color]){
                 board[W_ROOK + 6 * color] |= (from << 1);
                 board[W_ROOK + 6 * color] &= ~(from << 3);
             }
         }
         else if((from >> 2) == to){
-            if(queen_castling[color]){
+            if(fl->queen_castling[color]){
                 board[W_ROOK + 6 * color] |= (from >> 1);
                 board[W_ROOK + 6 * color] &= ~(from >> 4);
             }
         }
-        king_castling[color] = 0;
-        queen_castling[color] = 0;
+        fl->king_castling[color] = 0;
+        fl->queen_castling[color] = 0;
     }
     else if(piece == W_ROOK){
-        if(from == (1ULL << 56)) queen_castling[WHITE] = 0;
-        if(from == (1ULL << 63)) king_castling[WHITE] = 0;
+        if(from == (1ULL << 56)) fl->queen_castling[WHITE] = 0;
+        if(from == (1ULL << 63)) fl->king_castling[WHITE] = 0;
     }
     else if(piece == B_ROOK){
-        if(from == (1ULL << 0)) queen_castling[BLACK] = 0;
-        if(from == (1ULL << 7)) king_castling[BLACK] = 0;
+        if(from == (1ULL << 0)) fl->queen_castling[BLACK] = 0;
+        if(from == (1ULL << 7)) fl->king_castling[BLACK] = 0;
     }
     remove_square(from);
     remove_square(to);
     board[piece] |= to;
     update_color_boards();
     turn_number++;
-    if(turn_number > 15) endgame = 1;
+    if(turn_number > endgame_turning) endgame = 1;
     else endgame = 0;
 }
 
@@ -244,6 +324,11 @@ void Bitboard::update_color_boards(){
 Bitboard::Bitboard(){
     for(auto &i : board)
         i = 0ULL;
+    fl = new Flags;
     reset();
     update_color_boards();
+}
+
+Bitboard::~Bitboard(){
+    //delete board;
 }

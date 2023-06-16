@@ -4,24 +4,26 @@
 
 class Alphabeta{
     public:
-    int alphabeta(int depth, int color, int alpha, int beta);
-    void start_alphabeta(int color);
     struct eval_move;
     int eval_piece(int piece);
     int eval_board();
-    void reset_flags(int king[2], int queen[2], U64 wep, U64 bep);
     void comp_moves(int color, Alphabeta::eval_move *b, Alphabeta::eval_move e);
+    Alphabeta::eval_move start_alphabeta(int color);
+    Alphabeta::eval_move alphabeta(int depth, int color, int alpha, int beta);
     Alphabeta::eval_move pieces_in_bitboard(U64 *piece, int color, 
         U64 (Move::*function)(U64, int), int depth, int alpha, int beta);
 
     void pawn_in_bitboard(U64 *piece, int color);
     void moves_for_piece(U64 square, U64 moves, int color);
+    void move_alphabeta_eval(Alphabeta::eval_move result, int color);
     Alphabeta(Move *move, int depth);
 
     private:
     int depth;
     Move *mo;
     Bitboard *curBoard;
+    ZHash *hash;
+    U64 cur_hash;
 
     U64 (Move::*function_calls[6])(U64, int) = {
         &Move::find_pawn_legal_moves,
@@ -36,6 +38,7 @@ class Alphabeta{
 struct Alphabeta::eval_move{
         int score = -1e9;
         U64 from = 0ULL, to = 0ULL;
+        int promote = -1;
 };
 
 int Alphabeta::eval_piece(int piece){
@@ -47,8 +50,7 @@ int Alphabeta::eval_piece(int piece){
         score += eval_table::table[curBoard->endgame][piece][place];
         score += eval_table::piece_values[piece];
     }
-    score += eval_table::mobility_mult[curBoard->endgame][piece] 
-            * Magic::num_of_ones(curBoard->board[W_PAWN_ATTACK + piece]);
+    //score += eval_table::mobility_mult[curBoard->endgame][piece] * Magic::num_of_ones(curBoard->board[W_PAWN_ATTACK + piece]);
     return score;
 }
 
@@ -63,26 +65,15 @@ int Alphabeta::eval_board(){
     return score;
 }
 
-void Alphabeta::reset_flags(int king[2], int queen[2], U64 wep, U64 bep){
-    curBoard->board[W_E_P] = wep;
-    curBoard->board[B_E_P] = bep;
-    curBoard->king_castling[0] = king[0], curBoard->king_castling[1] = king[1];
-    curBoard->queen_castling[0] = queen[0], curBoard->queen_castling[1] = queen[1];
-    if(curBoard->turn_number > 15) curBoard->endgame = 1;
-    else curBoard->endgame = 0;
-}
-
 Alphabeta::eval_move Alphabeta::pieces_in_bitboard(U64 *piece, int color, U64 (Move::*function)(U64, int), int depth, int alpha, int beta){
-    int place, move_place, prev_piece, tmp_score, done = 0,
-        k_castle_copy[2], q_castle_copy[2];
+    int place, move_place, prev_piece, tmp_score, done = 0; 
     struct eval_move e;
-    int type;
+    int type, promotion_it, is_promoting;
+    U64 promoting_square;
     if(color) e.score = 1e9;
-    U64 square, move, before, prev_board, piece_copy = *piece,
-        wep_copy, bep_copy;
-    k_castle_copy[0] = curBoard->king_castling[0], k_castle_copy[1] = curBoard->king_castling[1];
-    q_castle_copy[0] = curBoard->queen_castling[0], q_castle_copy[1] = curBoard->queen_castling[1];
-    wep_copy = curBoard->board[W_E_P], bep_copy = curBoard->board[B_E_P];
+    U64 square, move, before, prev_board, piece_copy = *piece;
+    Bitboard::Flags fl_copy;
+    curBoard->copy_flags(*curBoard->fl, fl_copy);
 
     while(piece_copy != 0ULL && !done){
         //Get piece
@@ -91,6 +82,7 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(U64 *piece, int color, U64 (M
         type = curBoard->find_piece_index(square, color);
         U64 possible_moves = (mo->*function)(square, color);
         *piece &= ~(square);
+        promotion_it = 1, is_promoting = 0, promoting_square = 0ULL;
 
         while(possible_moves!= 0ULL && !done){
             //Get move
@@ -105,13 +97,23 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(U64 *piece, int color, U64 (M
             }
             prev_board = curBoard->board[prev_piece];
             //Make move
+            is_promoting = curBoard->is_promoting_pawn(move, type);
             curBoard->make_move(square, move, color, type);
+            if(is_promoting){
+                if(promoting_square != move){
+                    promotion_it = 1;
+                    promoting_square = move;
+                }
+                if(promotion_it < 4) possible_moves |= move;
+                curBoard->promote(move, color, promotion_it + 6 * color);
+            }
             if(!mo->check_check(color)){
-                tmp_score = alphabeta(depth - 1, !color, alpha, beta);
+                tmp_score = alphabeta(depth - 1, !color, alpha, beta).score;
                 if(!color){
                     if(tmp_score > e.score){
                         e.score = tmp_score;
                         e.from = square, e.to = move;
+                        if(is_promoting) e.promote = promotion_it + 6 * color;
                     }
                     if(tmp_score >= beta) done = 1;
                     else if(tmp_score > alpha) alpha = tmp_score;
@@ -120,16 +122,22 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(U64 *piece, int color, U64 (M
                     if(tmp_score < e.score){
                         e.score = tmp_score;
                         e.from = square, e.to = move;
+                        if(is_promoting) e.promote = promotion_it + 6 * color;
                     }
-                     if(tmp_score <= alpha) done = 1;
+                    if(tmp_score <= alpha) done = 1;
                     else if(tmp_score < beta) beta = tmp_score;
                 }
+            }
+            if(is_promoting){
+                curBoard->unpromote(move, color, promotion_it + 6 * color);
+                promotion_it++;
             }
 
             //Reset move
             *piece &= ~(move);
+            curBoard->turn_number--;
             curBoard->board[prev_piece] = prev_board;
-            reset_flags(k_castle_copy, q_castle_copy, wep_copy, bep_copy);
+            curBoard->copy_flags(fl_copy, *curBoard->fl);
         }
         *piece |= (square);
         curBoard->update_color_boards();
@@ -140,56 +148,71 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(U64 *piece, int color, U64 (M
 void Alphabeta::comp_moves(int color, Alphabeta::eval_move *b, Alphabeta::eval_move e){
     if((b)->score < e.score && !color){
         b->score = e.score;
-        b->from = e.from, b->to = e.to;
+        b->from = e.from, b->to = e.to, b->promote = e.promote;
     }
     else if(b->score > e.score && color){
         b->score = e.score;
-        b->from = e.from, b->to = e.to;
+        b->from = e.from, b->to = e.to, b->promote = e.promote;
     }
 }
 
-int Alphabeta::alphabeta(int depth, int color, int alpha, int beta){
+Alphabeta::eval_move Alphabeta::alphabeta(int depth, int color, int alpha, int beta){
+    U64 key = hash->hash_board_U64(curBoard, color, depth);
+    eval_move result;
+    if(color) result.score = 1e9 - depth;
+    else result.score += depth;
     if(depth == 0){
         mo->check_check(color);
-        return eval_board();
+        int p = eval_board();
+        hash->set_table_index(key, p, curBoard, depth);
+        result.score = p;
+        return result;
     }
-    eval_move result;
-    if(color) result.score = 1e9;
+    if(depth != this->depth){
+        if(!hash->is_empty(key, curBoard, depth)){
+            result.score = hash->access_table(key);
+            return result;
+        }
+    }
     for(int i = 0; i < 6; i++){
         comp_moves(color, &result,
             pieces_in_bitboard(&(curBoard->board[i + 6 * color]), 
             color, function_calls[i], depth, alpha, beta));
     }
-    if(depth == this->depth){
-        std::cout << "Score: " << result.score << std::endl;
-        curBoard->make_move(result.from, result.to, color, 
-            curBoard->find_piece_index(result.from, color));
-    }
-    return result.score;
+    hash->set_table_index(key, result.score, curBoard, depth);
+    return result;
 }
 
-void Alphabeta::start_alphabeta(int color){
+void Alphabeta::move_alphabeta_eval(Alphabeta::eval_move result, int color){
+    std::cout << "Score: " << result.score << std::endl;
+    curBoard->make_move(result.from, result.to, color, 
+    curBoard->find_piece_index(result.from, color));
+    if(result.promote != -1){
+        curBoard->promote(result.to, color, result.promote);
+    }
+}
+
+Alphabeta::eval_move Alphabeta::start_alphabeta(int color){
     std::cout << "Depth: " << depth << std::endl;
-    std::cout << "Flags: ";
-    std::cout << "WEP " << curBoard->board[W_E_P] << " ";
-    std::cout << "BEP " << curBoard->board[B_E_P] << " ";
-    std::cout << "WCastleKing " << curBoard->king_castling[0] << " ";
-    std::cout << "WCastleQueen " << curBoard->queen_castling[0] << " ";
-    std::cout << "BCastleKing " << curBoard->king_castling[1] << " ";
-    std::cout << "BCastleQueen " << curBoard->queen_castling[1] << " " << std::endl;
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-
-    alphabeta(depth, color, INT32_MIN, INT32_MAX);
-
+    curBoard->print_flags(*curBoard->fl);
+    cur_hash = hash->hash_board_U64(curBoard, color, depth);
+    hash->output_size();
+    eval_move result = alphabeta(depth, color, INT32_MIN, INT32_MAX);
+    move_alphabeta_eval(result, color);
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Execution time: " << 
         std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() 
         << "ms" << std::endl;
+    if(std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() < 300) depth++;
     curBoard->print_board();
+    std::cout << "Turn #" << curBoard->turn_number << std::endl;
+    return result;
 }
 
 Alphabeta::Alphabeta(Move *move, int depth){
     this->depth = depth;
     mo = move;
     curBoard = mo->curBoard;
+    hash = new ZHash(32);
 }

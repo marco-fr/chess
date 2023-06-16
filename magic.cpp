@@ -122,42 +122,42 @@ namespace Magic{
 	
 	U64 rook_attacks(int sq, U64 block){
 		U64 result = 0ULL;
-		int rk = sq/8, fl = sq%8, r, f;
-		for(r = rk+1; r <= 7; r++) {
-			result |= (1ULL << (fl + r*8));
-			if(block & (1ULL << (fl + r*8))) break;
+		int row = sq / 8, col = sq % 8, r, f;
+		for(r = row+1; r <= 7; r++) {
+			result |= (1ULL << (col + r*8));
+			if(block & (1ULL << (col + r*8))) break;
 		}
-		for(r = rk-1; r >= 0; r--) {
-			result |= (1ULL << (fl + r*8));
-			if(block & (1ULL << (fl + r*8))) break;
+		for(r = row-1; r >= 0; r--) {
+			result |= (1ULL << (col + r*8));
+			if(block & (1ULL << (col + r*8))) break;
 		}
-		for(f = fl+1; f <= 7; f++) {
-			result |= (1ULL << (f + rk*8));
-			if(block & (1ULL << (f + rk*8))) break;
+		for(f = col+1; f <= 7; f++) {
+			result |= (1ULL << (f + row*8));
+			if(block & (1ULL << (f + row*8))) break;
 		}
-		for(f = fl-1; f >= 0; f--) {
-			result |= (1ULL << (f + rk*8));
-			if(block & (1ULL << (f + rk*8))) break;
+		for(f = col-1; f >= 0; f--) {
+			result |= (1ULL << (f + row*8));
+			if(block & (1ULL << (f + row*8))) break;
 		}
 		return result;
 	}
 
 	U64 bishop_attacks(int sq, U64 block){
 		U64 result = 0ULL;
-		int rk = sq/8, fl = sq%8, r, f;
-		for(r = rk+1, f = fl+1; r <= 7 && f <= 7; r++, f++) {
+		int row = sq/8, col = sq%8, r, f;
+		for(r = row+1, f = col+1; r <= 7 && f <= 7; r++, f++) {
 			result |= (1ULL << (f + r*8));
 			if(block & (1ULL << (f + r * 8))) break;
 		}
-		for(r = rk+1, f = fl-1; r <= 7 && f >= 0; r++, f--) {
+		for(r = row+1, f = col-1; r <= 7 && f >= 0; r++, f--) {
 			result |= (1ULL << (f + r*8));
 			if(block & (1ULL << (f + r * 8))) break;
 		}
-		for(r = rk-1, f = fl+1; r >= 0 && f <= 7; r--, f++) {
+		for(r = row-1, f = col+1; r >= 0 && f <= 7; r--, f++) {
 			result |= (1ULL << (f + r*8));
 			if(block & (1ULL << (f + r * 8))) break;
 		}
-		for(r = rk-1, f = fl-1; r >= 0 && f >= 0; r--, f--) {
+		for(r = row-1, f = col-1; r >= 0 && f >= 0; r--, f--) {
 			result |= (1ULL << (f + r*8));
 			if(block & (1ULL << (f + r * 8))) break;
 		}
@@ -266,7 +266,6 @@ namespace Magic{
 				else if(used_attacks[k] != attacks[j]) fail = 1;
 			};
 			if(!fail){
-				//std::cout << "Magic found: " << std::hex << magic << std::endl;
 				return magic;
 			}
 		}

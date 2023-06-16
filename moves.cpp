@@ -2,12 +2,10 @@
 #include <functional>
 
 class Move{
-    private:
-
     public:
     Bitboard *curBoard;
     U64 FILE_A, FILE_AB, FILE_H, FILE_GH, 
-        RANK_5, RANK_4, RANK_2, RANK_7;
+        RANK_5, RANK_4, RANK_2, RANK_7, RANK_1, RANK_8;
     U64 KING_CASTLING[2];
     U64 QUEEN_CASTLING[2];
     void generate_file_rank();
@@ -33,6 +31,16 @@ class Move{
     int check_check(int color);
 
     Move(Bitboard *b);
+
+    private:
+    U64 (Move::*function_calls[6])(U64, int) = {
+        &Move::find_pawn_attacks,
+        &Move::find_knight_attacks,
+        &Move::find_bishop_attacks,
+        &Move::find_rook_attacks,
+        &Move::find_queen_attacks,
+        &Move::find_king_attacks
+    };
 };
 
 void Move::generate_file_rank(){
@@ -46,6 +54,8 @@ void Move::generate_file_rank(){
             if(i == 3) RANK_5|= (1ULL << (i * 8 + j));
             if(i == 4) RANK_4|= (1ULL << (i * 8 + j));
             if(i == 6) RANK_2|= (1ULL << (i * 8 + j));
+            if(i == 7) RANK_1|= (1ULL << (i * 8 + j));
+            if(i == 0) RANK_8|= (1ULL << (i * 8 + j));
         }
     }
     KING_CASTLING[0] = (1ULL << 61) | (1ULL << 62);
@@ -54,6 +64,8 @@ void Move::generate_file_rank(){
     QUEEN_CASTLING[1] = (1ULL << 1) | (1ULL << 2) | (1ULL << 3);
     curBoard->RANK_5 = RANK_5;
     curBoard->RANK_4 = RANK_4;
+    curBoard->RANK_1 = RANK_1;
+    curBoard->RANK_8 = RANK_8;
 }
 
 void Move::update_colors(){
@@ -123,12 +135,13 @@ U64 Move::find_all_attacks(int color){
     for(int i = 0; i < 12; i++){
         curBoard->board[W_PAWN_ATTACK + i] = 0ULL;
     }
-    result |= find_all_attacks_from_piece(curBoard->board[W_KNIGHT + 6 * color], color, &Move::find_knight_attacks);  
-    result |= find_all_attacks_from_piece(curBoard->board[W_BISHOP + 6 * color], color, &Move::find_bishop_attacks);  
-    result |= find_all_attacks_from_piece(curBoard->board[W_ROOK + 6 * color], color, &Move::find_rook_attacks);  
-    result |= find_all_attacks_from_piece(curBoard->board[W_KING + 6 * color], color, &Move::find_king_attacks);  
-    result |= find_all_attacks_from_piece(curBoard->board[W_QUEEN + 6 * color], color, &Move::find_queen_attacks);  
-    result |= find_all_attacks_from_piece(curBoard->board[W_PAWN + 6 * color], color, &Move::find_pawn_attacks);
+    for(int i = 0; i < 6; i++){
+        result |= find_all_attacks_from_piece(
+            curBoard->board[i + 6 * color],
+            color,
+            function_calls[i]
+        );
+    }
     curBoard->board[W_ALL_ATTACKS + color] = result;
     return result;
 }
@@ -142,13 +155,15 @@ int Move::check_check(int color){
 U64 Move::find_king_legal_moves(U64 square, int color){
     U64 result = remove_color(find_king_attacks(square, color), color);
     U64 other = curBoard->board[W_ALL_ATTACKS+!color];
-    if(curBoard->king_castling[color]){
-        if(!(other & KING_CASTLING[color]) && !(curBoard->board[ALL_PIECES] & KING_CASTLING[color])){
+    if(curBoard->fl->king_castling[color]){
+        if(!(other & KING_CASTLING[color]) && !(curBoard->board[ALL_PIECES] & KING_CASTLING[color]) 
+                    && (curBoard->board[W_ROOK + 6 * color] & (square << 3))){
             result |= (square << 2);
         }
     }
-    if(curBoard->queen_castling[color]){
-        if(!(other & QUEEN_CASTLING[color]) && !(curBoard->board[ALL_PIECES] & QUEEN_CASTLING[color])){
+    if(curBoard->fl->queen_castling[color]){
+        if(!(other & QUEEN_CASTLING[color]) && !(curBoard->board[ALL_PIECES] & QUEEN_CASTLING[color])
+                    && curBoard->board[W_ROOK + 6 * color] & (square >> 4)){
             result |= (square >> 2);
         }
     }
@@ -180,9 +195,9 @@ U64 Move::find_pawn_legal_moves(U64 square, int color){
         } 
         result |= (find_pawn_attacks(square, color) & curBoard->board[B_PIECES]);
         if(square & RANK_5){
-            if((square >> 1) & curBoard->board[W_E_P]) 
+            if((square >> 1) & curBoard->fl->ep[WHITE]) 
                 result |= (square >> 9);
-            if((square << 1) & curBoard->board[W_E_P])
+            if((square << 1) & curBoard->fl->ep[WHITE])
                 result |= (square >> 7);
         }
     }
@@ -193,9 +208,9 @@ U64 Move::find_pawn_legal_moves(U64 square, int color){
         } 
         result |= (find_pawn_attacks(square, color) & curBoard->board[W_PIECES]);
         if(square & RANK_4){
-            if((square >> 1) & curBoard->board[B_E_P]) 
+            if((square >> 1) & curBoard->fl->ep[BLACK]) 
                 result |= (square << 7);
-            if((square << 1) & curBoard->board[B_E_P])
+            if((square << 1) & curBoard->fl->ep[BLACK])
                 result |= (square << 9);
         }
     }
@@ -211,7 +226,7 @@ U64 Move::remove_color(U64 board, int color){
 Move::Move(Bitboard *b){
     curBoard = b;
     FILE_A = 0, FILE_AB = 0, FILE_GH = 0, FILE_H = 0,
-    RANK_5 = 0, RANK_2 = 0, RANK_4 = 0, RANK_7 = 0;
+    RANK_5 = 0, RANK_2 = 0, RANK_4 = 0, RANK_7 = 0, RANK_1 = 0, RANK_8 = 0;
     generate_file_rank();
     check_check(WHITE);
     check_check(BLACK);
