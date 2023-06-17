@@ -1,5 +1,6 @@
 .vscode/*
 src/xboard.debug
+xboard.debug
 src/main
 obj/*
 bin/*
