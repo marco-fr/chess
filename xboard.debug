@@ -1,0 +1,185 @@
+locale = en_US.UTF-8
+recognized 'normal' (-1) as variant normal
+recognized 'normal' (-1) as variant normal
+recognized 'normal' (-1) as variant normal
+shuffleOpenings = 0
+shuffleOpenings = 0
+Version: xboard 4.9.1 + fairymax ()
+Reset(1, 0) from gameMode 0
+recognized 'normal' (-1) as variant normal
+GameEnds(0, (null), 2)
+shuffleOpenings = 0
+StartChildProcess (dir=".") fairymax
+129 >first : xboard
+protover 2
+151 <first : tellics say     Fairy-Max 5.0b
+151 <first : tellics say     by H.G. Muller
+152 <first : feature myname="Fairy-Max 5.0b"
+152 >first : accepted myname
+152 <first : feature memory=1 exclude=1
+152 >first : accepted memory
+152 >first : accepted exclude
+152 <first : feature setboard=0 xedit=1 ping=1 done=0
+152 >first : accepted setboard
+152 >first : accepted xedit
+152 >first : accepted ping
+152 >first : accepted done
+152 <first : feature variants="normal,nocastle,shatranj,asean,makruk,cambodian,ai-wok,courier,knightmate,capablanca,gothic,janus,falcon,cylinder,berolina,super,seirawan,spartan,great,light-brigade,king-of-the-hill,bifurcator,team-mate,los-alamos,ciccolini,mexican,grande-acedrex,roman,almost-wildebeest,fairy"
+152 >first : accepted variants
+152 <first : feature option="Resign -check 0"
+152 >first : accepted option
+152 <first : feature option="Resign Threshold -spin 800 200 1200"
+152 >first : accepted option
+152 <first : feature option="Claim draw after -spin 50 0 200"
+152 >first : accepted option
+152 <first : feature option="Ini File -file /usr/share/games/fairymax/fmax.ini"
+152 >first : accepted option
+152 <first : feature option="Multi-PV Margin -spin 0 0 1000"
+152 >first : accepted option
+152 <first : feature option="Variant fairy selects -combo FIDE-Clobberers /// Clobberers-FIDE /// FIDE-Nutters /// Nutters-FIDE /// Clobberers-Nutters /// Nutters-Clobberers /// FIDE-Rookies /// Rookies-FIDE /// Clobberers-Rookies /// Rookies-Clobberers /// Nutters-Rookies /// Rookies-Nutters"
+152 >first : accepted option
+152 <first : feature option="Makruk rules -combo makruk /// Cambodian /// Ai-wok"
+152 >first : accepted option
+152 <first : feature option="Dummy Slider Example -slider 20 0 100"
+152 >first : accepted option
+152 <first : feature option="Dummy String Example -string happy birthday!"
+152 >first : accepted option
+152 <first : feature option="Dummy Path Example -path ."
+152 >first : accepted option
+152 <first : feature option="Automatic persistent-hash dialog -check 0"
+152 >first : accepted option
+152 <first : feature option="Info -button"
+152 >first : accepted option
+152 <first : feature option="Save in hash file -button"
+152 >first : accepted option
+152 <first : feature option="Clear Hash -button"
+152 >first : accepted option
+152 <first : feature done=1
+152 >first : accepted done
+153 >first : memory 68
+153 >first : new
+random
+153 >first : level 0 50 0
+153 >first : post
+153 >first : hard
+153 >first : ping 1
+164 <first : pong 1
+26464 >first : quit
+Unload first
+StartChildProcess (dir=".") /storage/Programming/C++/chess/bin/chess_engine
+26467 >first : xboard
+protover 2
+26469 <first : # Chess Engine
+26480 <first : Total hash entries: 1398101
+26480 <first : Total hash size (bytes): 33554424
+26490 <first : feature usermove=1
+26490 >first : accepted usermove
+26490 <first : done=1
+recognized 'normal' (-1) as variant normal
+36476 >first : new
+random
+36476 >first : level 0 50 0
+36476 >first : post
+36476 >first : hard
+54960 >first : black
+54960 >first : time 300000
+54960 >first : otim 300000
+54960 >first : white
+book hit = (NULL)
+54960 >first : go
+nps: w=-1, b=-1
+54961 <first : feature usermove=1
+Interrupting first
+54961 >first : accepted usermove
+54961 <first : Depth: 5
+54961 <first : Flags: WEP 0 BEP 0 WCastleKing 1 WCastleQueen 1 BCastleKing 1 BCastleQueen 1 
+54961 <first : Turn #1
+55781 <first : Hash table accessed 15659 times during this turn
+55781 <first : Score: 90
+55781 <first : Execution time: 820ms
+55781 <first : 0   r n b q k b n r 
+55781 <first : 1   p p p p p p p p 
+55781 <first : 2   0 0 0 0 0 0 0 0 
+55781 <first : 3   0 0 0 0 0 0 0 0 
+55781 <first : 4   0 0 0 0 P 0 0 0 
+55781 <first : 5   0 0 0 0 0 0 0 0 
+55781 <first : 6   P P P P 0 P P P 
+55781 <first : 7   R N B Q K B N R 
+55781 <first : 
+55781 <first :     0 1 2 3 4 5 6 7 
+55781 <first : 
+55781 <first : move e2e4
+Interrupting first
+58216 >first : time 299917
+58216 >first : otim 299756
+book hit = (NULL)
+58216 >first : usermove 58216 >first : e7e5
+58217 <first : Depth: 5
+58217 <first : Flags: WEP 268435456 BEP 68719476736 WCastleKing 1 WCastleQueen 1 BCastleKing 1 BCastleQueen 1 
+58217 <first : Turn #3
+63576 <first : Hash table accessed 102584 times during this turn
+63576 <first : Score: 145
+63576 <first : Execution time: 5360ms
+63576 <first : 0   r n b q k b n r 
+63576 <first : 1   p p p p 0 p p p 
+63576 <first : 2   0 0 0 0 0 0 0 0 
+63576 <first : 3   0 0 0 0 p 0 0 0 
+63576 <first : 4   0 0 0 0 P 0 0 0 
+63576 <first : 5   0 0 0 0 0 N 0 0 
+63576 <first : 6   P P P P 0 P P P 
+63576 <first : 7   R N B Q K B 0 R 
+63576 <first : 
+63576 <first :     0 1 2 3 4 5 6 7 
+63576 <first : 
+63576 <first : move g1f3
+Interrupting first
+65064 >first : time 299381
+65064 >first : otim 299607
+book hit = (NULL)
+65064 >first : usermove 65064 >first : b8c6
+65066 <first : Depth: 5
+65066 <first : Flags: WEP 0 BEP 0 WCastleKing 1 WCastleQueen 1 BCastleKing 1 BCastleQueen 1 
+65066 <first : Turn #5
+70878 <first : Hash table accessed 113078 times during this turn
+70878 <first : Score: 165
+70878 <first : Execution time: 5813ms
+70878 <first : 0   r 0 b q k b n r 
+70878 <first : 1   p p p p 0 p p p 
+70878 <first : 2   0 0 n 0 0 0 0 0 
+70878 <first : 3   0 0 0 0 p 0 0 0 
+70878 <first : 4   0 0 0 0 P 0 0 0 
+70878 <first : 5   0 0 N 0 0 N 0 0 
+70878 <first : 6   P P P P 0 P P P 
+70879 <first : 7   R 0 B Q K B 0 R 
+70879 <first : 
+70879 <first :     0 1 2 3 4 5 6 7 
+70879 <first : 
+70879 <first : move b1c3
+Interrupting first
+72796 >first : time 298800
+72796 >first : otim 299416
+book hit = (NULL)
+72796 >first : usermove 72796 >first : g8f6
+72798 <first : Depth: 5
+72798 <first : Flags: WEP 0 BEP 0 WCastleKing 1 WCastleQueen 1 BCastleKing 1 BCastleQueen 1 
+72798 <first : Turn #7
+79338 <first : Hash table accessed 114718 times during this turn
+79338 <first : Score: 145
+79338 <first : Execution time: 6541ms
+79338 <first : 0   r 0 b q k b 0 r 
+79338 <first : 1   p p p p 0 p p p 
+79338 <first : 2   0 0 n 0 0 n 0 0 
+79338 <first : 3   0 B 0 0 p 0 0 0 
+79338 <first : 4   0 0 0 0 P 0 0 0 
+79338 <first : 5   0 0 N 0 0 N 0 0 
+79338 <first : 6   P P P P 0 P P P 
+79338 <first : 7   R 0 B Q K 0 0 R 
+79338 <first : 
+79338 <first :     0 1 2 3 4 5 6 7 
+79338 <first : 
+79338 <first : move f1b5
+GameEnds(29, xboard exit, 2)
+Interrupting first
+81920 >first : result * {xboard exit}
+81920 >first : force
+81920 >first : quit

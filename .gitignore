@@ -1,3 +1,7 @@
 .vscode/*
-xboard.debug
-main
+src/xboard.debug
+src/main
+obj/*
+bin/*
+debug/*
+.clang-format
