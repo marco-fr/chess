@@ -24,10 +24,22 @@ void ZHash::init_z_hash()
 
 U64 ZHash::modify_hash(U64 old, int piece, int square)
 {
+    if (!square)
+        return old;
     return old ^ (bit_table[square][piece]);
 }
 
-U64 ZHash::hash_board_U64(Bitboard* b, int color, int depth)
+U64 ZHash::modify_hash_U64(U64 old, int piece, U64 square)
+{
+    if (!square)
+        return old;
+    int place = Magic::pop_first_bit(&square);
+    // std::cout  << "Place: " << place << std::endl;
+    // std::cout << "Piece: " << piece << std::endl;
+    return old ^ (bit_table[place][piece]);
+}
+
+U64 ZHash::hash_board_U64(Bitboard* b, int color)
 {
     U64 result = 0ULL;
     int index;
@@ -43,7 +55,7 @@ U64 ZHash::hash_board_U64(Bitboard* b, int color, int depth)
             result ^= bit_table[index][i];
         }
     }
-    result ^= depth_table[depth];
+    // result ^= depth_table[depth];
     return result;
 }
 
@@ -63,13 +75,9 @@ int ZHash::access_table(U64 key)
     return hash_table[new_key].score;
 }
 
-U64 ZHash::get_times_accessed(){
-    return times_accessed;
-}
+U64 ZHash::get_times_accessed() { return times_accessed; }
 
-void ZHash::reset_times_accessed(){
-    times_accessed = 0;
-}
+void ZHash::reset_times_accessed() { times_accessed = 0ULL; }
 
 int ZHash::is_empty(U64 key, Bitboard* b, int depth)
 {
@@ -79,7 +87,20 @@ int ZHash::is_empty(U64 key, Bitboard* b, int depth)
         return 1;
     if (b->board[B_PIECES] != hash_table[new_key].black)
         return 1;
-    if (depth != hash_table[new_key].depth)
+    if (depth > hash_table[new_key].depth)
+        return 1;
+    return 0;
+}
+
+int ZHash::not_good_for_deepening(U64 key, Bitboard* b, int depth)
+{
+    U64 new_key = resized_key(key);
+
+    if (b->board[W_PIECES] != hash_table[new_key].white)
+        return 1;
+    if (b->board[B_PIECES] != hash_table[new_key].black)
+        return 1;
+    if (depth > hash_table[new_key].depth + 1)
         return 1;
     return 0;
 }

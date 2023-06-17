@@ -5,7 +5,7 @@ int main()
 {
     std::cout << "# Chess Engine" << std::endl;
 
-    Game game(5);
+    Game game(6);
 
     //game.start_commandline();
     game.start_xboard();

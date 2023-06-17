@@ -2,6 +2,7 @@
 #define BITBOARD_INCLUDE
 
 #include <iostream>
+#include "hash.hpp"
 
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
@@ -48,6 +49,8 @@ enum
     BLACK
 };
 
+class ZHash;
+
 class Bitboard
 {
 public:
@@ -74,24 +77,31 @@ public:
     int piece_from_character(char c);
     int is_promoting_pawn(U64 square, int piece);
     void update_color_boards();
+    void add_piece_with_hash(U64 square, int piece);
+    void remove_all_piece_square_with_hash(U64 square);
+    void remove_piece_with_hash(U64 square, int piece);
 
     U64 board[29];
+    U64 hash_key;
     Flags* fl;
+
+    ZHash *hash;
 
     U64 RANK_5, RANK_4, RANK_8, RANK_1;
 
     int turn_number = 1;
     int running = 1;
     int endgame = 0;
-    int endgame_turning = 30;
+    int endgame_turning = 100;
     int turn = WHITE;
     char piece_naming[12] = {'P', 'N', 'B', 'R', 'Q', 'K',
                              'p', 'n', 'b', 'r', 'q', 'k'};
 
-    Bitboard();
+    Bitboard(int color);
     ~Bitboard();
 
 private:
+    int HASH_MB_SIZE = 128;
     // White: Pawn, Knight, Bishop, Rook, Queen, King...
 };
 

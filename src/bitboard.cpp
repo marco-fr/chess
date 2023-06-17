@@ -1,4 +1,5 @@
 #include "bitboard.hpp"
+#include "hash.hpp"
 #include <iostream>
 
 void Bitboard::print_U64(U64 b)
@@ -111,6 +112,7 @@ void Bitboard::reset()
     set_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
     fl->king_castling[0] = 1, fl->king_castling[1] = 1;
     fl->queen_castling[0] = 1, fl->queen_castling[1] = 1;
+    turn_number = 0;
 }
 
 U64 Bitboard::find_white_pieces()
@@ -204,6 +206,28 @@ void Bitboard::input_move(int color)
     }
 }
 
+void Bitboard::add_piece_with_hash(U64 square, int piece)
+{
+    board[piece] |= square;
+    hash_key = hash->modify_hash_U64(hash_key, piece, square);
+}
+
+void Bitboard::remove_all_piece_square_with_hash(U64 square)
+{
+    for (int i = 0; i < 12; i++)
+    {
+        if (board[i] & square)
+            hash_key = hash->modify_hash_U64(hash_key, i, square);
+        board[i] &= ~square;
+    }
+}
+
+void Bitboard::remove_piece_with_hash(U64 square, int piece)
+{
+    board[piece] &= ~square;
+    hash_key = hash->modify_hash_U64(hash_key, piece, square);
+}
+
 void Bitboard::make_easy_move(U64 from, U64 to, int color)
 {
     make_move(from, to, color, find_piece_index(from, color));
@@ -211,14 +235,18 @@ void Bitboard::make_easy_move(U64 from, U64 to, int color)
 
 void Bitboard::promote(U64 from, int color, int piece_to)
 {
-    board[W_PAWN + 6 * color] &= ~from;
-    board[piece_to] |= from;
+    // board[W_PAWN + 6 * color] &= ~from;
+    // board[piece_to] |= from;
+    remove_piece_with_hash(from, W_PAWN + 6 * color);
+    add_piece_with_hash(from, piece_to);
 }
 
 void Bitboard::unpromote(U64 from, int color, int piece_to)
 {
-    board[piece_to] &= ~from;
-    board[W_PAWN + 6 * color] |= from;
+    // board[piece_to] &= ~from;
+    // board[W_PAWN + 6 * color] |= from;
+    remove_piece_with_hash(from, piece_to);
+    add_piece_with_hash(from, W_PAWN + 6 * color);
 }
 
 int Bitboard::is_promoting_pawn(U64 square, int piece)
@@ -244,7 +272,8 @@ void Bitboard::make_move(U64 from, U64 to, int color, int piece)
                  (((from >> 1) == fl->ep[WHITE] && to == (from >> 9)) ||
                   ((from << 1) == fl->ep[WHITE] && to == (from >> 7))))
         {
-            board[B_PAWN] &= (~fl->ep[WHITE]);
+            // board[B_PAWN] &= (~fl->ep[WHITE]);
+            remove_piece_with_hash(fl->ep[WHITE], B_PAWN);
             fl->ep[WHITE] = 0ULL;
         }
         else
@@ -258,7 +287,8 @@ void Bitboard::make_move(U64 from, U64 to, int color, int piece)
                  (((from >> 1) == fl->ep[BLACK] && to == (from << 7)) ||
                   ((from << 1) == fl->ep[BLACK] && to == (from << 9))))
         {
-            board[W_PAWN] &= (~fl->ep[BLACK]);
+            // board[W_PAWN] &= (~fl->ep[BLACK]);
+            remove_piece_with_hash(fl->ep[BLACK], W_PAWN);
             fl->ep[BLACK] = 0ULL;
         }
         else
@@ -275,16 +305,20 @@ void Bitboard::make_move(U64 from, U64 to, int color, int piece)
         {
             if (fl->king_castling[color])
             {
-                board[W_ROOK + 6 * color] |= (from << 1);
-                board[W_ROOK + 6 * color] &= ~(from << 3);
+                add_piece_with_hash((from << 1), (W_ROOK + 6 * color));
+                remove_piece_with_hash((from << 3), (W_ROOK + 6 * color));
+                // board[W_ROOK + 6 * color] |= (from << 1);
+                // board[W_ROOK + 6 * color] &= ~(from << 3);
             }
         }
         else if ((from >> 2) == to)
         {
             if (fl->queen_castling[color])
             {
-                board[W_ROOK + 6 * color] |= (from >> 1);
-                board[W_ROOK + 6 * color] &= ~(from >> 4);
+                add_piece_with_hash((from >> 1), (W_ROOK + 6 * color));
+                remove_piece_with_hash((from >> 4), (W_ROOK + 6 * color));
+                // board[W_ROOK + 6 * color] |= (from >> 1);
+                // board[W_ROOK + 6 * color] &= ~(from >> 4);
             }
         }
         fl->king_castling[color] = 0;
@@ -304,9 +338,12 @@ void Bitboard::make_move(U64 from, U64 to, int color, int piece)
         if (from == (1ULL << 7))
             fl->king_castling[BLACK] = 0;
     }
-    remove_square(from);
-    remove_square(to);
-    board[piece] |= to;
+    remove_all_piece_square_with_hash(from);
+    remove_all_piece_square_with_hash(to);
+    add_piece_with_hash(to, piece);
+    // remove_square(from);
+    // remove_square(to);
+    // board[piece] |= to;
     update_color_boards();
     turn_number++;
     if (turn_number > endgame_turning)
@@ -322,16 +359,21 @@ void Bitboard::update_color_boards()
     board[ALL_PIECES] = find_all_pieces();
 }
 
-Bitboard::Bitboard()
+Bitboard::Bitboard(int color)
 {
     for (auto& i : board)
         i = 0ULL;
     fl = new Flags;
+    hash = new ZHash(HASH_MB_SIZE);
+    hash->output_size();
     reset();
     update_color_boards();
+    hash_key = hash->hash_board_U64(this, color);
 }
 
 Bitboard::~Bitboard()
 {
+    delete fl;
+    delete hash;
     // delete board;
 }

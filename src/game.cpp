@@ -22,7 +22,7 @@ void Game::start_commandline()
     std::cin >> in;
     if (in[0] == 'y')
         turn = HUMAN;
-    
+
     board->print_board();
 
     while (board->running)
@@ -45,7 +45,7 @@ void Game::start_commandline()
 
 Game::Game(int depth)
 {
-    board = new Bitboard();
+    board = new Bitboard(WHITE);
     move = new Move(board);
     board->reset();
     alg = new Alphabeta(move, depth);
