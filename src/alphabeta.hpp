@@ -15,10 +15,11 @@ public:
     int eval_board();
     Alphabeta::eval_move start_alphabeta(int color);
     Alphabeta::eval_move alphabeta(int depth, int color, int alpha, int beta);
-    Alphabeta::eval_move pieces_in_bitboard(U64* piece, int color,
-                                            U64 (Move::*function)(U64, int),
-                                            int depth, int alpha, int beta,
-                                            std::priority_queue<queue_item, std::vector<queue_item>, Compare> &list);
+    Alphabeta::eval_move
+    pieces_in_bitboard(U64* piece, int color, U64 (Move::*function)(U64, int),
+                       int depth, int alpha, int beta,
+                       std::priority_queue<queue_item, std::vector<queue_item>,
+                                           Compare>& list);
     void move_alphabeta_eval(Alphabeta::eval_move result, int color);
     void comp_moves(int color, Alphabeta::eval_move* b, Alphabeta::eval_move e);
     Alphabeta(Move* move, int depth);

@@ -20,7 +20,7 @@ public:
     void reset_times_accessed();
     int access_table(U64 key);
     int is_empty(U64 key, Bitboard* b, int depth);
-    int not_good_for_deepening(U64 key, Bitboard *b, int depth);
+    int not_good_for_deepening(U64 key, Bitboard* b, int depth);
     U64 modify_hash_U64(U64 old, int piece, U64 square);
     U64 hash_board_U64(Bitboard* b, int color);
     U64 modify_hash(U64 old, int piece, int square);

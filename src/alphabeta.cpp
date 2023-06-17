@@ -181,7 +181,7 @@ Alphabeta::eval_move Alphabeta::alphabeta(int depth, int color, int alpha,
         result.score = p;
         return result;
     }
-        
+
     for (int i = 0; i < 6; i++)
     {
         pieces_in_bitboard(&(curBoard->board[i + 6 * color]), color,
@@ -202,9 +202,11 @@ Alphabeta::eval_move Alphabeta::alphabeta(int depth, int color, int alpha,
         {
             tmp_score = curBoard->hash->access_table(curBoard->hash_key);
         }
-        else{
+        else
+        {
             tmp_score = alphabeta(depth - 1, !color, alpha, beta).score;
-            curBoard->hash->set_table_index(curBoard->hash_key, tmp_score, curBoard, depth - 1);
+            curBoard->hash->set_table_index(curBoard->hash_key, tmp_score,
+                                            curBoard, depth - 1);
         }
         if (!color)
         {
@@ -247,8 +249,10 @@ Alphabeta::eval_move Alphabeta::alphabeta(int depth, int color, int alpha,
         curBoard->update_color_boards();
         list.pop();
     }
-    if(result.from == 0ULL && result.to == 0ULL){
-        if(!mo->check_check(color)){
+    if (result.from == 0ULL && result.to == 0ULL)
+    {
+        if (!mo->check_check(color))
+        {
             result.score = 0;
         }
     }

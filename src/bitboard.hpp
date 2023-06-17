@@ -1,8 +1,8 @@
 #ifndef BITBOARD_INCLUDE
 #define BITBOARD_INCLUDE
 
-#include <iostream>
 #include "hash.hpp"
+#include <iostream>
 
 #define set_bit(b, i) ((b) |= (1ULL << i))
 #define get_bit(b, i) ((b) & (1ULL << i))
@@ -85,7 +85,7 @@ public:
     U64 hash_key;
     Flags* fl;
 
-    ZHash *hash;
+    ZHash* hash;
 
     U64 RANK_5, RANK_4, RANK_8, RANK_1;
 

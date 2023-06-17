@@ -7,7 +7,7 @@ int main()
 
     Game game(6);
 
-    //game.start_commandline();
+    // game.start_commandline();
     game.start_xboard();
 
     return 0;
