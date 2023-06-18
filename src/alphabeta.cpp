@@ -272,8 +272,8 @@ int Alphabeta::quiescence(int depth, int color, int alpha, int beta)
         else
         {
             tmp_score = -quiescence(depth - 1, !color, -beta, -alpha);
-            curBoard->hash->set_table_index(curBoard->hash_key, tmp_score,
-                                            curBoard, depth - 1);
+            //curBoard->hash->set_table_index(curBoard->hash_key, tmp_score,
+                                            //curBoard, depth - 1);
         }
         engine_remove_move(next, color, key, fl_copy);
         list.pop();
