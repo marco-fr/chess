@@ -192,6 +192,11 @@ void Bitboard::input_move(int color)
     U64 from, to;
     std::cout << "FROM row and col: ";
     std::cin >> fr >> fc;
+    if (fr == -1)
+    {
+        running = 0;
+        return;
+    }
     std::cout << "TO row and col: ";
     std::cin >> tr >> tc;
     from = (1ULL << (fr * 8 + fc));
@@ -346,6 +351,7 @@ void Bitboard::make_move(U64 from, U64 to, int color, int piece)
     // board[piece] |= to;
     update_color_boards();
     turn_number++;
+    turn = !turn;
     if (turn_number > endgame_turning)
         endgame = 1;
     else

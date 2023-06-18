@@ -4,7 +4,7 @@
 
 struct ZHash::entry
 {
-    int score, depth = 0;
+    int score, depth = 0, color;
     U64 white = 0ULL, black = 0ULL;
 };
 
@@ -66,6 +66,7 @@ void ZHash::set_table_index(U64 key, int value, Bitboard* b, int depth)
     hash_table[new_key].depth = depth;
     hash_table[new_key].white = b->board[W_PIECES];
     hash_table[new_key].black = b->board[B_PIECES];
+    hash_table[new_key].color = b->turn;
 }
 
 int ZHash::access_table(U64 key)
@@ -87,6 +88,8 @@ int ZHash::is_empty(U64 key, Bitboard* b, int depth)
         return 1;
     if (b->board[B_PIECES] != hash_table[new_key].black)
         return 1;
+    if (b->turn != hash_table[new_key].color)
+        return 1;
     if (depth > hash_table[new_key].depth)
         return 1;
     return 0;
@@ -99,6 +102,8 @@ int ZHash::not_good_for_deepening(U64 key, Bitboard* b, int depth)
     if (b->board[W_PIECES] != hash_table[new_key].white)
         return 1;
     if (b->board[B_PIECES] != hash_table[new_key].black)
+        return 1;
+    if (b->turn != hash_table[new_key].color)
         return 1;
     if (depth > hash_table[new_key].depth + 1)
         return 1;

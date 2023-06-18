@@ -2,6 +2,7 @@
 #define ZHASH_INCLUDE
 
 #include "bitboard.hpp"
+#include <iostream>
 #define U64 uint64_t
 
 class Bitboard;

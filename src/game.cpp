@@ -24,6 +24,7 @@ void Game::start_commandline()
         turn = HUMAN;
 
     board->print_board();
+    // alg->root_alphabeta(5, color, -1e9, 1e9);
 
     while (board->running)
     {
@@ -48,6 +49,7 @@ Game::Game(int depth)
     board = new Bitboard(WHITE);
     move = new Move(board);
     board->reset();
+    // board->set_board("8/1k4q1/3r4/8/1r1Q4/8/8/8");
     alg = new Alphabeta(move, depth);
     Magic::init_hashes();
     move->generate_file_rank();

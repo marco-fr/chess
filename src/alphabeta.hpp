@@ -12,22 +12,32 @@ public:
     struct eval_move;
     struct queue_item;
     int eval_piece(int piece);
-    int eval_board();
+    int eval_board(int color);
     Alphabeta::eval_move start_alphabeta(int color);
-    Alphabeta::eval_move alphabeta(int depth, int color, int alpha, int beta);
-    Alphabeta::eval_move
-    pieces_in_bitboard(U64* piece, int color, U64 (Move::*function)(U64, int),
-                       int depth, int alpha, int beta,
-                       std::priority_queue<queue_item, std::vector<queue_item>,
-                                           Compare>& list);
+    int alphabeta(int depth, int color, int alpha, int beta);
+    int quiescence(int depth, int color, int alpha, int beta);
+    Alphabeta::eval_move root_alphabeta(int depth, int color, int alpha,
+                                        int beta);
+    Alphabeta::eval_move pieces_in_bitboard(
+        U64* piece, int color, U64 (Move::*function)(U64, int), int depth,
+        std::priority_queue<queue_item, std::vector<queue_item>, Compare>& list,
+        int only_attacking);
     void move_alphabeta_eval(Alphabeta::eval_move result, int color);
-    void comp_moves(int color, Alphabeta::eval_move* b, Alphabeta::eval_move e);
+    void engine_make_move(Alphabeta::queue_item next, int color);
+    void engine_remove_move(Alphabeta::queue_item next, int color, U64 key,
+                            Bitboard::Flags& fl_copy);
+    void get_all_moves(
+        int color, int depth,
+        std::priority_queue<queue_item, std::vector<queue_item>, Compare>& list,
+        int attacking);
     Alphabeta(Move* move, int depth);
 
 private:
     Move* mo;
     Bitboard* curBoard;
     int depth;
+    const int MAX = 1e9;
+    int max_quise = -6;
     U64 cur_hash;
     U64(Move::*function_calls[6])
     (U64,
