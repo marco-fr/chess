@@ -17,6 +17,13 @@ Chess engine in C++, absolute minimum compliance to work with XBoard protocol
 * Material
 * Piece position
 
-![Playing using XBoard](images/xboard.png)
-![Playing using commandline](images/commandline.png)
+Playing using XBoard
+<p align="center">
+  <img src="images/xboard.png" width="350" title="XBoard">
+</p>
+
+Playing using command line
+<p align="center">
+  <img src="images/commandline.png" width="350" title="Commandline">
+</p>
 
