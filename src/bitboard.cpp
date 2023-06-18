@@ -107,12 +107,23 @@ void Bitboard::set_board(std::string FEN)
     }
 }
 
+void Bitboard::user_input_fen(){
+    std::cout << "INPUT FEN: ";
+    std::string fen;
+    std::cin >> fen;
+    set_board(fen);
+    update_color_boards();
+}
+
 void Bitboard::reset()
 {
     set_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
     fl->king_castling[0] = 1, fl->king_castling[1] = 1;
     fl->queen_castling[0] = 1, fl->queen_castling[1] = 1;
+    //fl->king_castling[0] = 0, fl->king_castling[1] = 0;
+    //fl->queen_castling[0] = 0, fl->queen_castling[1] = 0;
     turn_number = 0;
+    update_color_boards();
 }
 
 U64 Bitboard::find_white_pieces()

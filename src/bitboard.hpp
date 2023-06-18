@@ -60,6 +60,7 @@ public:
     void print_board();
     void print_flags(Flags f);
     void set_board(std::string FEN);
+    void user_input_fen();
     void copy_flags(Flags from, Flags& to);
     void reset();
     void input_move(int color);

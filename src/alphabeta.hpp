@@ -37,7 +37,7 @@ private:
     Bitboard* curBoard;
     int depth;
     const int MAX = 1e9;
-    int max_quise = -6;
+    int max_quise = -4;
     U64 cur_hash;
     U64(Move::*function_calls[6])
     (U64,

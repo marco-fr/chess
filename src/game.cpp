@@ -49,7 +49,7 @@ Game::Game(int depth)
     board = new Bitboard(WHITE);
     move = new Move(board);
     board->reset();
-    // board->set_board("8/1k4q1/3r4/8/1r1Q4/8/8/8");
+    //board->user_input_fen();
     alg = new Alphabeta(move, depth);
     Magic::init_hashes();
     move->generate_file_rank();

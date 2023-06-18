@@ -252,11 +252,29 @@ int Alphabeta::quiescence(int depth, int color, int alpha, int beta)
 
     get_all_moves(color, depth, list, 1);
 
+    if(list.empty()){
+        get_all_moves(color, depth, list, 0);
+        if(list.empty()){
+            if(!mo->check_check(color)) return 0;
+            else return score;
+        }
+        return alpha;
+    }
+
     while (!list.empty())
     {
         queue_item next = list.top();
         engine_make_move(next, color);
-        tmp_score = -quiescence(depth - 1, !color, -beta, -alpha);
+        if (!curBoard->hash->is_empty(curBoard->hash_key, curBoard, depth - 1))
+        {
+            tmp_score = curBoard->hash->access_table(curBoard->hash_key);
+        }
+        else
+        {
+            tmp_score = -quiescence(depth - 1, !color, -beta, -alpha);
+            curBoard->hash->set_table_index(curBoard->hash_key, tmp_score,
+                                            curBoard, depth - 1);
+        }
         engine_remove_move(next, color, key, fl_copy);
         list.pop();
         if (tmp_score >= beta)
@@ -281,6 +299,11 @@ int Alphabeta::alphabeta(int depth, int color, int alpha, int beta)
         return quiescence(depth, color, alpha, beta);
     }
     get_all_moves(color, depth, list, 0);
+    if(list.empty()){
+        if(!mo->check_check(color)){
+            score = 0;
+        }
+    }
     while (!list.empty())
     {
         queue_item next = list.top();
