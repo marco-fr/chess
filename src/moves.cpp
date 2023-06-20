@@ -137,9 +137,10 @@ U64 Move::find_king_legal_moves(U64 square, int color)
 {
     U64 result = remove_color(find_king_attacks(square, color), color);
     U64 other = curBoard->board[W_ALL_ATTACKS + !color];
+    int in_check = (other & curBoard->board[W_KING + 6 * color]);
     if (curBoard->fl->king_castling[color])
     {
-        if (!(other & KING_CASTLING[color]) &&
+        if (!in_check && !(other & KING_CASTLING[color]) &&
             !(curBoard->board[ALL_PIECES] & KING_CASTLING[color]) &&
             (curBoard->board[W_ROOK + 6 * color] & (square << 3)))
         {
@@ -148,7 +149,7 @@ U64 Move::find_king_legal_moves(U64 square, int color)
     }
     if (curBoard->fl->queen_castling[color])
     {
-        if (!(other & QUEEN_CASTLING[color]) &&
+        if (!in_check && !(other & QUEEN_CASTLING[color]) &&
             !(curBoard->board[ALL_PIECES] & QUEEN_CASTLING[color]) &&
             curBoard->board[W_ROOK + 6 * color] & (square >> 4))
         {

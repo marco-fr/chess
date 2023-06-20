@@ -45,19 +45,20 @@ int Alphabeta::eval_board(int color)
     return score;
 }
 
-Alphabeta::eval_move Alphabeta::pieces_in_bitboard(
+int Alphabeta::pieces_in_bitboard(
     U64* piece, int color, U64 (Move::*function)(U64, int), int depth,
     std::priority_queue<queue_item, std::vector<queue_item>, Compare>& list,
     int only_attacking)
 {
     int place, move_place, prev_piece, tmp_score, done = 0;
-    struct eval_move e;
-    int type, promotion_it, is_promoting;
+    int type, promotion_it, is_promoting, is_attacking;
     U64 key_copy = curBoard->hash_key;
+    queue_item qu;
     U64 promoting_square;
     U64 square, move, before, prev_board, piece_copy = *piece;
     Bitboard::Flags fl_copy;
     curBoard->copy_flags(*curBoard->fl, fl_copy);
+    int any_moves = 0;
 
     while (piece_copy != 0ULL && !done)
     {
@@ -72,10 +73,15 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(
         while (possible_moves != 0ULL && !done)
         {
             // Get move
+            is_attacking = 0;
+            any_moves = 1;
             move_place = Magic::pop_first_bit(&possible_moves);
             move = (1ULL << move_place);
-            if (move & curBoard->board[W_PIECES + !color] || !only_attacking)
+            if (move & curBoard->board[W_PIECES + !color])
+                is_attacking = 1;
+            if (is_attacking || !only_attacking)
             {
+                // if(debug_test) curBoard->print_U64(move);
                 prev_piece = curBoard->find_piece_index(move, !color);
                 if (type == W_PAWN && prev_piece == 0)
                     prev_piece = B_PAWN;
@@ -103,7 +109,6 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(
                 }
                 if (!mo->check_check(color))
                 {
-                    queue_item qu;
                     qu.from = square, qu.to = move;
                     qu.prev_board = prev_board, qu.type = type,
                     qu.prev_piece = prev_piece;
@@ -115,11 +120,14 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(
                     if (curBoard->hash->not_good_for_deepening(
                             curBoard->hash_key, curBoard, depth))
                     {
-                        qu.score = e.score;
+                        qu.score = -MAX;
                     }
                     else
                         qu.score =
                             curBoard->hash->access_table(curBoard->hash_key);
+                    if (is_attacking)
+                        qu.score = eval_table::piece_values[prev_piece] -
+                                   eval_table::piece_values[type];
                     // if (color)
                     // qu.score = -qu.score;
                     list.push(qu);
@@ -141,7 +149,7 @@ Alphabeta::eval_move Alphabeta::pieces_in_bitboard(
         *piece |= (square);
         curBoard->update_color_boards();
     }
-    return e;
+    return any_moves;
 }
 
 void Alphabeta::engine_make_move(Alphabeta::queue_item next, int color)
@@ -170,33 +178,44 @@ void Alphabeta::engine_remove_move(Alphabeta::queue_item next, int color,
     curBoard->update_color_boards();
 }
 
-void Alphabeta::get_all_moves(
+int Alphabeta::get_all_moves(
     int color, int depth,
     std::priority_queue<queue_item, std::vector<queue_item>, Compare>& list,
     int attacking)
 {
+    int any_moves = 0;
     for (int i = 0; i < 6; i++)
     {
-        pieces_in_bitboard(&(curBoard->board[i + 6 * color]), color,
-                           function_calls[i], depth, list, attacking);
+        any_moves |=
+            pieces_in_bitboard(&(curBoard->board[i + 6 * color]), color,
+                               function_calls[i], depth, list, attacking);
     }
+    return any_moves;
 }
 
 Alphabeta::eval_move Alphabeta::root_alphabeta(int depth, int color, int alpha,
-                                               int beta)
+                                               int beta, int attacking_only)
 {
     U64 key = curBoard->hash_key;
     Bitboard::Flags fl_copy;
+    curBoard->update_color_boards();
     int tmp_score;
     curBoard->copy_flags(*curBoard->fl, fl_copy);
     std::priority_queue<queue_item, std::vector<queue_item>, Compare> list;
     eval_move result;
     result.score = -MAX + (100 - depth);
-    get_all_moves(color, depth, list, 0);
+    if (attacking_only)
+        debug_test = 1;
+    else
+        debug_test = 0;
+    if (mo->check_check(color))
+        attacking_only = 0;
+    get_all_moves(color, depth, list, attacking_only);
     while (!list.empty())
     {
         queue_item next = list.top();
         engine_make_move(next, color);
+
         if (!curBoard->hash->is_empty(curBoard->hash_key, curBoard, depth - 1))
         {
             tmp_score = curBoard->hash->access_table(curBoard->hash_key);
@@ -204,7 +223,6 @@ Alphabeta::eval_move Alphabeta::root_alphabeta(int depth, int color, int alpha,
         else
         {
             tmp_score = -alphabeta(depth - 1, !color, -beta, -alpha);
-            // tmp_score = -quiescence(depth, !color, -beta, -alpha);
             curBoard->hash->set_table_index(curBoard->hash_key, tmp_score,
                                             curBoard, depth - 1);
         }
@@ -218,8 +236,17 @@ Alphabeta::eval_move Alphabeta::root_alphabeta(int depth, int color, int alpha,
             result.from = next.from, result.to = next.to;
             if (next.is_promoting)
                 result.promote = next.promote;
+            else
+                result.promote = -1;
         }
-        alpha = std::max(alpha, result.score);
+        if (result.score > alpha)
+        {
+            alpha = result.score;
+            eval_move t;
+            t.from = next.from, t.to = next.to, t.score = alpha,
+            t.promote = next.promote;
+            eval_tree[80 + depth] = t;
+        }
         if (alpha >= beta)
             break;
     }
@@ -235,54 +262,86 @@ Alphabeta::eval_move Alphabeta::root_alphabeta(int depth, int color, int alpha,
 
 int Alphabeta::quiescence(int depth, int color, int alpha, int beta)
 {
+    int in_check = mo->check_check(color), only_attacks = 1;
+    U64 copy_attacks = curBoard->board[W_ALL_ATTACKS + !color];
     int standing_pat = eval_board(color);
+    /*
+    if(standing_pat == -145 || standing_pat == 145){
+        curBoard->print_board();
+    }*/
     std::priority_queue<queue_item, std::vector<queue_item>, Compare> list;
     U64 key = curBoard->hash_key;
     Bitboard::Flags fl_copy;
     int tmp_score;
-    int score = -MAX + (100 - depth);
+    // int score = -MAX + (100 - depth);
     curBoard->copy_flags(*curBoard->fl, fl_copy);
-
-    if (standing_pat >= beta)
-        return beta;
+    /*
+    if(!in_check){
     if (alpha < standing_pat)
         alpha = standing_pat;
     if (depth < max_quise)
-        return alpha;
-
-    get_all_moves(color, depth, list, 1);
-
-    if(list.empty()){
-        get_all_moves(color, depth, list, 0);
-        if(list.empty()){
-            if(!mo->check_check(color)) return 0;
-            else return score;
-        }
-        return alpha;
+        return standing_pat;
+    }*/
+    if (in_check)
+    {
+        only_attacks = 0;
+        if (debug_test)
+            curBoard->print_board();
     }
+    else
+    {
+        if (standing_pat >= beta)
+            return standing_pat;
+    }
+
+    tmp_score =
+        -quiescence(depth - 1, !color, -beta, -std::max(standing_pat, alpha));
+    standing_pat = std::max(tmp_score, standing_pat);
+    if (standing_pat >= beta)
+        return standing_pat;
+    if (tmp_score >= beta)
+        return beta;
+    if (tmp_score > alpha)
+    {
+        alpha = tmp_score;
+    }
+    int any_moves = get_all_moves(color, depth, list, only_attacks);
+
+    /*
+    if(!any_moves){
+        if(!in_check) return 0;
+        else return score;
+    }*/
 
     while (!list.empty())
     {
         queue_item next = list.top();
+        if (next.to & curBoard->board[W_KING + 6 * !color])
+            return MAX - (100 - depth);
+        if (depth <= max_quise &&
+            !(next.from & curBoard->board[W_ALL_ATTACKS + !color] && !in_check))
+        {
+            // curBoard->print_board();
+            list.pop();
+            continue;
+        }
         engine_make_move(next, color);
-        if (!curBoard->hash->is_empty(curBoard->hash_key, curBoard, depth - 1))
-        {
-            tmp_score = curBoard->hash->access_table(curBoard->hash_key);
-        }
-        else
-        {
-            tmp_score = -quiescence(depth - 1, !color, -beta, -alpha);
-            //curBoard->hash->set_table_index(curBoard->hash_key, tmp_score,
-                                            //curBoard, depth - 1);
-        }
+        tmp_score = -quiescence(depth - 1, !color, -beta,
+                                -std::max(standing_pat, alpha));
         engine_remove_move(next, color, key, fl_copy);
         list.pop();
+        standing_pat = std::max(tmp_score, standing_pat);
+        curBoard->board[W_ALL_ATTACKS + !color];
+        if (standing_pat >= beta)
+            return standing_pat;
         if (tmp_score >= beta)
             return beta;
         if (tmp_score > alpha)
-            alpha = score;
+        {
+            alpha = tmp_score;
+        }
     }
-    return alpha;
+    return standing_pat;
 }
 
 int Alphabeta::alphabeta(int depth, int color, int alpha, int beta)
@@ -298,9 +357,28 @@ int Alphabeta::alphabeta(int depth, int color, int alpha, int beta)
         // return eval_board(color);
         return quiescence(depth, color, alpha, beta);
     }
+    if (!mo->check_check(color))
+    {
+        tmp_score = -alphabeta(depth - 1, !color, -beta, -alpha);
+        if (tmp_score >= beta)
+            return beta;
+    }
+    tmp_score = -alphabeta(depth - 1, !color, -beta, -alpha);
+    score = std::max(score, tmp_score);
+    if (score > alpha)
+    {
+        alpha = score;
+    }
+    if (alpha >= beta)
+    {
+        return score;
+    }
+
     get_all_moves(color, depth, list, 0);
-    if(list.empty()){
-        if(!mo->check_check(color)){
+    if (list.empty())
+    {
+        if (!mo->check_check(color))
+        {
             score = 0;
         }
     }
@@ -322,57 +400,72 @@ int Alphabeta::alphabeta(int depth, int color, int alpha, int beta)
         list.pop();
 
         score = std::max(score, tmp_score);
-        alpha = std::max(alpha, score);
+        if (score > alpha)
+        {
+            alpha = score;
+        }
         if (alpha >= beta)
+        {
             break;
+        }
     }
     return score;
 }
 
 void Alphabeta::move_alphabeta_eval(Alphabeta::eval_move result, int color)
 {
-    std::cout << "Evaluation: " << result.score << std::endl;
+    std::cout << "# Board Score: " << result.score << std::endl;
     curBoard->make_move(result.from, result.to, color,
                         curBoard->find_piece_index(result.from, color));
     if (result.promote != -1)
     {
         curBoard->promote(result.to, color, result.promote);
     }
+    // std::cout << "# Current Board Evaluation: " << eval_board(color) <<
+    // std::endl; curBoard->print_U64(curBoard->board[B_KNIGHT]);
 }
 
-Alphabeta::eval_move Alphabeta::start_alphabeta(int color)
+Alphabeta::eval_move Alphabeta::start_alphabeta(int color, int attacking_only)
 {
-    std::cout << "Depth: " << depth << ", Quiescence depth: " << -max_quise
-              << std::endl;
     std::chrono::steady_clock::time_point begin =
         std::chrono::steady_clock::now();
+    if (curBoard->PRINT_INFO)
+    {
+        std::cout << "# Depth: " << depth
+                  << ", Quiescence depth: " << -max_quise << std::endl;
 
-    curBoard->print_flags(*curBoard->fl);
-    curBoard->hash->reset_times_accessed();
-    std::cout << "Turn #" << curBoard->turn_number << std::endl;
-
-    eval_move result = root_alphabeta(depth, color, -MAX, MAX);
-
-    std::cout << "Hash table accessed " << curBoard->hash->get_times_accessed()
-              << " times during this turn" << std::endl;
+        curBoard->print_flags(*curBoard->fl);
+        curBoard->hash->reset_times_accessed();
+        std::cout << "# Turn #" << curBoard->turn_number << std::endl;
+    }
+    eval_move result = root_alphabeta(depth, color, -MAX, MAX, attacking_only);
     move_alphabeta_eval(result, color);
-    std::chrono::steady_clock::time_point end =
-        std::chrono::steady_clock::now();
-    std::cout << "Execution time: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(end -
-                                                                       begin)
-                     .count()
-              << "ms" << std::endl;
-    // if (std::chrono::duration_cast<std::chrono::milliseconds>(end - begin)
-    //       .count() < 300)
-    //   depth++;
-    curBoard->print_board();
+    if (curBoard->PRINT_INFO)
+    {
+        std::cout << "# Hash table accessed "
+                  << curBoard->hash->get_times_accessed()
+                  << " times during this turn" << std::endl;
+        std::chrono::steady_clock::time_point end =
+            std::chrono::steady_clock::now();
+        std::cout << "# Execution time: "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(
+                         end - begin)
+                         .count()
+                  << "ms" << std::endl;
+        // if (std::chrono::duration_cast<std::chrono::milliseconds>(end -
+        // begin)
+        //       .count() < 300)
+        //   depth++;
+        curBoard->print_board();
+    }
     return result;
 }
 
-Alphabeta::Alphabeta(Move* move, int depth)
+Alphabeta::Alphabeta(Move* move, int depth, int quise)
 {
     mo = move;
     curBoard = mo->curBoard;
     this->depth = depth;
+    this->max_quise = quise;
+    std::cout << eval_board(BLACK) << std::endl;
 }

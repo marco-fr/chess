@@ -1,7 +1,6 @@
 # Chess Engine
 
-Chess engine in C++, absolute minimum compliance to work with XBoard protocol
-(CECP).
+Chess engine in C++, XBoard (CECP) compliant
 
 ## Board Representation
 * Bitboards
@@ -11,6 +10,7 @@ Chess engine in C++, absolute minimum compliance to work with XBoard protocol
 * Minimax with alpha-beta pruning
 * Transposition table
 * Move ordering from hash
+* Null-move
 * Quiescence
 
 ## Evaluation

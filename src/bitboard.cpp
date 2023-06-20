@@ -4,9 +4,10 @@
 
 void Bitboard::print_U64(U64 b)
 {
-    std::cout << "U64: " << std::endl;
+    std::cout << "# U64: " << std::endl;
     for (int i = 0; i < 8; i++)
     {
+        std::cout << "# ";
         for (int j = 0; j < 8; j++)
         {
             std::cout << (get_bit(b, i * 8 + j) ? 1 : 0) << " ";
@@ -27,55 +28,74 @@ void Bitboard::copy_flags(Flags from, Flags& to)
 
 void Bitboard::print_board()
 {
-    for (int i = 0; i < 8; i++)
+    if (!PRINT_INFO || PRINT_INFO)
     {
-        std::cout << i << "   ";
-        for (int j = 0; j < 8; j++)
+        for (int i = 0; i < 8; i++)
         {
-            int k;
-            for (k = 0; k < 12; k++)
+            std::cout << "# " << i << "   ";
+            for (int j = 0; j < 8; j++)
             {
-                if (get_bit(board[k], (i * 8 + j)))
+                int k;
+                for (k = 0; k < 12; k++)
                 {
-                    std::cout << piece_naming[k] << " ";
-                    break;
+                    if (get_bit(board[k], (i * 8 + j)))
+                    {
+                        std::cout << piece_naming[k] << " ";
+                        break;
+                    }
                 }
+                if (k == 12)
+                    std::cout << "0 ";
             }
-            if (k == 12)
-                std::cout << "0 ";
+            std::cout << std::endl;
+        }
+        // std::cout << std::endl;
+        std::cout << "#    ";
+        for (int i = 0; i < 8; i++)
+        {
+            std::cout << i << " ";
         }
         std::cout << std::endl;
     }
-    std::cout << std::endl;
-    std::cout << "    ";
-    for (int i = 0; i < 8; i++)
-    {
-        std::cout << i << " ";
-    }
-    std::cout << std::endl << std::endl;
 }
 
 void Bitboard::print_flags(Flags f)
 {
-    std::cout << "Flags: ";
-    std::cout << "WEP " << f.ep[WHITE] << " ";
-    std::cout << "BEP " << f.ep[BLACK] << " ";
-    std::cout << "WCastleKing " << f.king_castling[0] << " ";
-    std::cout << "WCastleQueen " << f.queen_castling[0] << " ";
-    std::cout << "BCastleKing " << f.king_castling[1] << " ";
-    std::cout << "BCastleQueen " << f.queen_castling[1] << " " << std::endl;
+    if (PRINT_INFO)
+    {
+        std::cout << "# Flags: ";
+        std::cout << "WEP " << f.ep[WHITE] << " ";
+        std::cout << "BEP " << f.ep[BLACK] << " ";
+        std::cout << "WCastleKing " << f.king_castling[0] << " ";
+        std::cout << "WCastleQueen " << f.queen_castling[0] << " ";
+        std::cout << "BCastleKing " << f.king_castling[1] << " ";
+        std::cout << "BCastleQueen " << f.queen_castling[1] << " " << std::endl;
+    }
+}
+
+U64 Bitboard::char_to_square(char letter, char number)
+{
+    int row = 8 - (int)(number - '0'), col = (int)(letter - 'a');
+    return (1ULL << (row * 8 + col));
 }
 
 void Bitboard::set_board(std::string FEN)
 {
-    int row = 0, col = 0;
+    fl->king_castling[0] = 0, fl->king_castling[1] = 0;
+    fl->queen_castling[0] = 0, fl->queen_castling[1] = 0;
+    int row = 0, col = 0, i;
     running = 1;
     for (auto& i : board)
         i = 0ULL;
-    for (char& c : FEN)
+    for (i = 0; i < FEN.size(); i++)
     {
+        char c = FEN[i];
         int piece = -1;
         int cn = c - '0';
+        if (row * 8 + col >= 64)
+        {
+            break;
+        }
         if (cn < 9 && cn > 0)
         {
             col += cn;
@@ -101,27 +121,55 @@ void Bitboard::set_board(std::string FEN)
             }
             else
             {
-                std::cout << "Invalid board input." << std::endl;
+                break;
             }
         }
     }
+    update_color_boards();
+    i++;
+    if (FEN[i] == 'w')
+        turn = WHITE;
+    else if (FEN[i] == 'b')
+        turn = BLACK;
+    i += 2;
+    while (FEN[i] != ' ')
+    {
+        if (FEN[i] == 'Q')
+            fl->queen_castling[WHITE] = 1;
+        else if (FEN[i] == 'q')
+            fl->queen_castling[BLACK] = 1;
+        else if (FEN[i] == 'k')
+            fl->king_castling[BLACK] = 1;
+        else if (FEN[i] == 'K')
+            fl->king_castling[WHITE] = 1;
+        i++;
+    }
+    i++;
+    if (FEN[i] != '-')
+    {
+        U64 square = char_to_square(FEN[i], FEN[i + 1]);
+        if (square & board[W_PIECES])
+            fl->ep[WHITE] = square;
+        else
+            fl->ep[BLACK] = square;
+        i++;
+    }
 }
 
-void Bitboard::user_input_fen(){
+void Bitboard::user_input_fen()
+{
     std::cout << "INPUT FEN: ";
     std::string fen;
-    std::cin >> fen;
+    std::getline(std::cin, fen);
     set_board(fen);
     update_color_boards();
 }
 
 void Bitboard::reset()
 {
-    set_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+    set_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     fl->king_castling[0] = 1, fl->king_castling[1] = 1;
     fl->queen_castling[0] = 1, fl->queen_castling[1] = 1;
-    //fl->king_castling[0] = 0, fl->king_castling[1] = 0;
-    //fl->queen_castling[0] = 0, fl->queen_castling[1] = 0;
     turn_number = 0;
     update_color_boards();
 }

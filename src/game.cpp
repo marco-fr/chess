@@ -30,7 +30,7 @@ void Game::start_commandline()
     {
         if (turn == COMPUTER)
         {
-            alg->start_alphabeta(color);
+            alg->start_alphabeta(color, 0);
         }
         else if (turn == HUMAN)
         {
@@ -44,13 +44,48 @@ void Game::start_commandline()
     }
 }
 
-Game::Game(int depth)
+void Game::test()
+{
+    board->user_input_fen();
+    move->check_check(WHITE);
+    move->check_check(BLACK);
+    color = board->turn;
+    board->print_board();
+    XBoard xb(alg, board);
+    std::cout << alg->depth << std::endl;
+    while (alg->depth > 1)
+    {
+        std::cout << xb.square_to_xboard_move(alg->start_alphabeta(color, 0))
+                  << std::endl;
+        std::cout << "BOARD EVAL: " << alg->eval_board(color) << std::endl;
+        color = !color;
+        alg->depth--;
+    }
+    while (alg->max_quise < 0)
+    {
+        std::cout << xb.square_to_xboard_move(alg->start_alphabeta(color, 1))
+                  << std::endl;
+        std::cout << "BOARD EVAL: " << alg->eval_board(color) << std::endl;
+        std::cout << "DEPTH: " << alg->depth << std::endl;
+        color = !color;
+        alg->max_quise++;
+    }
+    // alg->max_quise++;
+    for (int i = 0; i < 10; i++)
+    {
+        std::cout << xb.square_to_xboard_move(alg->start_alphabeta(color, 1))
+                  << std::endl;
+        color = !color;
+    }
+}
+
+Game::Game(int depth, int quise)
 {
     board = new Bitboard(WHITE);
     move = new Move(board);
     board->reset();
-    //board->user_input_fen();
-    alg = new Alphabeta(move, depth);
+    // board->user_input_fen();
+    alg = new Alphabeta(move, depth, quise);
     Magic::init_hashes();
     move->generate_file_rank();
     move->update_colors();

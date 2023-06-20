@@ -90,7 +90,7 @@ int ZHash::is_empty(U64 key, Bitboard* b, int depth)
         return 1;
     if (b->turn != hash_table[new_key].color)
         return 1;
-    if (depth > hash_table[new_key].depth)
+    if (depth != hash_table[new_key].depth)
         return 1;
     return 0;
 }
@@ -132,8 +132,8 @@ void ZHash::set_table(int num)
 
 void ZHash::output_size()
 {
-    std::cout << "Total hash entries: " << number_entries << std::endl;
-    std::cout << "Total hash size (bytes): " << number_entries * sizeof(entry)
+    std::cout << "# Total hash entries: " << number_entries << std::endl;
+    std::cout << "# Total hash size (bytes): " << number_entries * sizeof(entry)
               << std::endl;
 }
 

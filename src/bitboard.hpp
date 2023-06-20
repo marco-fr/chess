@@ -74,6 +74,7 @@ public:
     U64 find_white_pieces();
     U64 find_black_pieces();
     U64 find_all_pieces();
+    U64 char_to_square(char letter, char number);
     int find_piece_index(U64 piece, int color);
     int piece_from_character(char c);
     int is_promoting_pawn(U64 square, int piece);
@@ -91,18 +92,19 @@ public:
     U64 RANK_5, RANK_4, RANK_8, RANK_1;
 
     int turn_number = 1;
+    int full_moves = 1;
     int running = 1;
     int endgame = 0;
     int endgame_turning = 100;
     int turn = WHITE;
     char piece_naming[12] = {'P', 'N', 'B', 'R', 'Q', 'K',
                              'p', 'n', 'b', 'r', 'q', 'k'};
-
+    int PRINT_INFO = 0;
     Bitboard(int color);
     ~Bitboard();
 
 private:
-    int HASH_MB_SIZE = 128;
+    int HASH_MB_SIZE = 16;
     // White: Pawn, Knight, Bishop, Rook, Queen, King...
 };
 
